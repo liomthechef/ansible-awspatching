@@ -1,0 +1,2 @@
+- include: ./tests/playbook-testlinux.yml
+- include: ./tests/playbook-testwindows.yml

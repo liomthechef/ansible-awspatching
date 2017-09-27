@@ -1,0 +1,24 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars:
+     contents: "{{ lookup('file', '/tmp/ansiblepatchlog.txt') }}"
+     failed_contents: "{{ lookup('file', '/tmp/ansiblepatchfaillog.txt') }}"
+     mailserver: 127.0.0.1
+     smtpport: 25
+     smtpfrom: sender@domain.com
+     smtpto: recipient@domain.com
+
+  tasks:
+
+    - name: "email patching status"
+      mail:
+        host: "{{ mailserver }}"
+        port: "{{ smtpport }}"
+        subject: 'Patching status report'
+        from: "{{ smtpfrom }}"
+        to: "{{ smtpto }}"
+        body: "<b>Successfully patched</b><br>{{ contents }} <br><br><b>Unsuccessfully patched</b><br>{{failed_contents}}"
+        subtype: html
+      delegate_to: localhost

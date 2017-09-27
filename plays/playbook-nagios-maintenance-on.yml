@@ -1,0 +1,14 @@
+---
+- hosts: maintenance
+  serial: 3
+  connection: local
+  gather_facts: False
+  vars:
+    host_key_checking: false
+  tasks:
+    - nagios:
+        action: downtime
+        service: host
+        host: "{{ item }}"
+        minutes: 200
+      with_items: "{{ maintenance_hosts }}"

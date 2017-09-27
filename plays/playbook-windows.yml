@@ -1,0 +1,118 @@
+---
+- hosts: windows
+  serial: 25
+  strategy: free
+  ignore_errors: true
+
+  vars:
+     mailserver: 127.0.0.1
+     smtpport: 25
+     smtpfrom: sender@domain.com
+     smtpto: recipient@domain.com
+     update_result:
+     ansible_winrm_operation_timeout_sec: 120
+     ansible_winrm_read_timeout_sec: 150
+
+  tasks:
+
+       - name: wait for 10 minutes
+         command: /bin/sleep 600
+         delegate_to: localhost
+
+       - block:
+         - name: Check for missing updates.
+           win_updates:
+             category_names:
+                - CriticalUpdates
+                - SecurityUpdates
+                - UpdateRollups
+                - FeaturePacks
+                - ServicePacks
+                - UpdateRollups
+                - updates
+                - DefinitionUpdates
+           register: update_count
+
+         rescue:
+         - name: Check for updates can fail if reboot pending
+           win_reboot:
+               shutdown_timeout_sec: 3600
+               reboot_timeout_sec: 3600
+           register: failure_reboot
+           when: update_count.error is defined and update_count.error == "A reboot is required before more updates can be installed."
+           ignore_errors: true
+
+         - name: waiting for server to come back
+           local_action: wait_for host={{ inventory_hostname }}
+               state=started
+               port=5986
+               delay=300
+               timeout=3600
+               connect_timeout=15
+           register: server_status
+           when:
+             - failure_reboot is defined and failure_reboot.rebooted == true
+
+         - name: Check for missing updates attempt 2, no error handling if failed.
+           win_updates:
+             category_names:
+                - CriticalUpdates
+                - SecurityUpdates
+                - UpdateRollups
+                - FeaturePacks
+                - ServicePacks
+                - UpdateRollups
+                - updates
+                - DefinitionUpdates
+           register: update_count
+           ignore_errors: true
+
+       - block:
+
+         - name: Report engine
+           shell: echo '{{ ansible_hostname }} patching incomplete, server error.<br>' >> /tmp/ansiblepatchfaillog.txt
+           delegate_to: localhost
+           when:
+             - update_count.failed == true
+           register: patchfailurereport
+
+       - block:
+         - name: Reboot, if needed.
+           win_reboot:
+           register: reboot
+
+         - name: waiting for server to come back
+           local_action: wait_for host={{ inventory_hostname }}
+               state=started
+               port=5986
+               delay=300
+               timeout=3600
+               connect_timeout=15
+           register: server_status
+           when:
+             - reboot.rebooted == true
+
+         rescue:
+         - name: "email if reboot fails"
+           mail:
+             host: "{{ mailserver }}"
+             port: "{{ smtpport }}"
+             subject: 'System {{ ansible_hostname }} Patching failure detected.'
+             from: "{{ smtpfrom }}"
+             to: "{{ smtpto }}"
+             body: "Server has not restarted within timeout period"
+           delegate_to: localhost
+           when:
+            - server_status.state != "started"
+            - reboot.rebooted is defined and reboot.rebooted == true
+           register: failure_notice
+
+
+         when: update_count.reboot_required == true
+
+       - block:
+
+         - name: Report engine
+           shell: echo '{{ ansible_hostname }} - found {{update_count.found_update_count}} installed {{update_count.installed_update_count}} <br>' >> /tmp/ansiblepatchlog.txt
+           when: patchfailurereport.skipped is not defined
+           delegate_to: localhost

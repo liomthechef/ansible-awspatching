@@ -1,0 +1,11 @@
+[windows]
+nppamft01.domain.com
+[linux]
+nppaprx01.domain.com
+[maintenance]
+10.200.9.11
+[amibackup]
+nppamft01.domain.com awsname="NPP_A_IN_MFT01"
+nppaprx01.domain.com awsname="NPP_A_IN_PRX01"
+[maintenance:vars]
+maintenance_hosts='["nppamft01", "nppaprx01"]'

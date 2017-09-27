@@ -1,0 +1,7 @@
+- include: ./playbook-nagios-maintenance-on.yml
+- include: ./plays/playbook-amibackup.yml
+- include: ./plays/playbook-prepatchreport.yml
+- include: ./plays/playbook-windows.yml
+- include: ./plays/playbook-linux.yml
+- include: ./plays/playbook-nagios-maintenance-off.yml
+- include: ./plays/playbook-patchreport.yml

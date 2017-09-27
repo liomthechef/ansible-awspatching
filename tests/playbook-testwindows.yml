@@ -1,0 +1,10 @@
+---
+- hosts: windows
+  serial: 20
+  strategy: free
+  ignore_errors: true
+  vars:
+     ansible_winrm_operation_timeout_sec: 120
+     ansible_winrm_read_timeout_sec: 150
+  tasks:
+    - win_ping:

@@ -1,0 +1,81 @@
+---
+- hosts: linux
+  serial: 10
+  strategy: free
+  ignore_errors: true
+  vars:
+     mailserver: 127.0.0.1
+     smtpport: 25
+     smtpfrom: sender@domain.com
+     smtpto: recipient@domain.com
+
+  tasks:
+     - block:
+    #  Install updates, reboot only if required
+        - name: patch server!
+          yum:
+            name: '*'
+            state: latest
+            update_cache: yes
+          register: patch_status
+          become: yes
+
+       rescue:
+         - name: Report engine
+           shell: echo '{{ ansible_hostname }} patching incomplete, server error. no reboot occurred' >> /tmp/ansiblepatchlog.txt
+           delegate_to: localhost
+           when:
+             - update_count.failed == true
+           register: patchfailurereport
+
+     - block:
+
+        - name: Restart server
+          command: /sbin/shutdown -r 1
+          async: 0
+          poll: 0
+          delay: 10
+          become: yes
+          when:
+            patchfailurereport is not defined
+
+        - name: waiting for server to come back
+          local_action: wait_for host={{ inventory_hostname }}
+            state=started
+            port=22
+            delay=120
+            timeout=500
+            connect_timeout=15
+          become: no
+          register: server_status
+       when: patch_status.changed
+
+       rescue:
+
+        - name: "email if reboot fails"
+          mail:
+            host: "{{ mailserver }}"
+            port: "{{ smtpport }}"
+            subject: 'System {{ ansible_hostname }} is not accessible within 500 seconds .'
+            from: "{{ smtpfrom }}"
+            to: "{{ smtpto }}"
+            body: "Manually verify server health"
+          delegate_to: localhost
+          register: reboot_failure
+
+
+     - block:
+       - name: Report engine
+         shell: echo '{{ ansible_hostname }} patched successfully' >> /tmp/ansiblepatchlog.txt
+         when:
+          - patchfailurereport is not defined
+          - reboot_failure is not defined
+         delegate_to: localhost
+
+     - block:
+       - name: Report engine
+         shell: echo '{{ ansible_hostname }} patching incomplete, server error.' >> /tmp/ansiblepatchlog.txt
+         when:
+          - patchfailurereport is defined
+          - reboot_failure is defined
+         delegate_to: localhost

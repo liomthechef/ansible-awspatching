@@ -1,0 +1,42 @@
+---
+- hosts: maintenance
+  connection: local
+  gather_facts: False
+  vars:
+     mailserver: 127.0.0.1
+     smtpport: 25
+     smtpfrom: sender@domain.com
+     smtpto: recipient@domain.com
+
+  tasks:
+
+      - file:
+          path: /tmp/ansiblepatchfaillog.txt
+          state: absent
+          mode: 0644
+
+      - file:
+          path: /tmp/ansiblepatchlog.txt
+          state: absent
+          mode: 0644
+
+      - file:
+          path: /tmp/ansiblepatchfaillog.txt
+          state: touch
+          mode: 0644
+
+      - file:
+          path: /tmp/ansiblepatchlog.txt
+          state: touch
+          mode: 0644
+
+
+      - name: "email to notify patching"
+        mail:
+          host: "{{ mailserver }}"
+          port: "{{ smtpport }}"
+          subject: "Servers begin patching in 10 minutes"
+          from: "{{ smtpfrom }}"
+          to: "{{ smtpto }}"
+          body: "The below hosts are in this round of patching, save any work on these systems prior to reboot.\n {{ maintenance_hosts }}"
+        delegate_to: localhost

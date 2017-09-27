@@ -1,0 +1,3 @@
+ansible_ssh_user: svc-ansible
+host_key_checking: false
+ansible_password: 87230DASDJHXJ23
