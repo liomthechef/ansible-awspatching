@@ -52,7 +52,8 @@ Python Dependencies.
 - Set smtpfrom and smtp fields in playbooks, along with adjusting smtp server parameters
 - Populate inventory file with hosts the server should be deployed as below:
 
-###WINDOWS SERVERS TO BE PATCHED
+
+`###WINDOWS SERVERS TO BE PATCHED
 [windows]
 nppamft01.domain.com
 ###LINUX SERVERS TO BE PATCHED
@@ -67,7 +68,7 @@ nppamft01.domain.com awsname="NPP_A_IN_MFT01"
 nppaprx01.domain.com awsname="NPP_A_IN_PRX01"
 ###NAGIOS HOSTS FOR DOWNTIME
 [maintenance:vars]
-maintenance_hosts='["nppamft01", "nppaprx01"]'
+maintenance_hosts='["nppamft01", "nppaprx01"]'`
 
 
 - Group_vars should include your servers SSH access details including key location or
