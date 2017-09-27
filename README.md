@@ -41,11 +41,12 @@ Install Python 2.7.14, earlier 2.7 versions should work.
 Install Python pip
 
 Python Dependencies.
-`pip install ansible
+ ```
+ pip install ansible
  pip install boto
  pip install winrm
  pip install "pywinrm>=0.2.2
-`
+ ```
 
 ###### Playbook dependencies
 
